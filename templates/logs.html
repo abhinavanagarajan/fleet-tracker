@@ -1,0 +1,11 @@
+{% extends "base.html" %}{% from "_macros.html" import status %}{% block title %}Logs{% endblock %}{% block body %}
+<h1>Daily Bus Logs <span class="muted">(MongoDB <code>daily_bus_logs</code> - READ / UPDATE / DELETE)</span></h1>
+<form class="card row" method="get">
+<div><label>Bus</label><select name="bus_id"><option value="">all</option>{% for b in buses %}<option {{ 'selected' if a.get('bus_id')==b.bus_id }}>{{ b.bus_id }}</option>{% endfor %}</select></div>
+<div><label>From</label><input type="date" name="from" value="{{ a.get('from','') }}"></div><div><label>To</label><input type="date" name="to" value="{{ a.get('to','') }}"></div>
+<div><label>Day type</label><select name="day_type"><option value="">all</option>{% for t in ['WEEKDAY','SUNDAY','HOLIDAY'] %}<option {{ 'selected' if a.get('day_type')==t }}>{{ t }}</option>{% endfor %}</select></div>
+<div><label>Collection status</label><select name="status"><option value="">all</option>{% for t in ['ABOVE_AVERAGE','AVERAGE','BELOW_AVERAGE'] %}<option {{ 'selected' if a.get('status')==t }}>{{ t }}</option>{% endfor %}</select></div>
+<button>Filter</button></form>
+<div class="card"><div class="muted">Filter sent to MongoDB: <code>db.daily_bus_logs.find({{ q }})</code> &rarr; {{ n }} document(s)</div>
+<table><tr><th>Log id</th><th>Date</th><th>Type</th><th class="n">Singles</th><th class="n">Gross</th><th class="n">Net</th><th class="n">km/L</th><th>Status</th><th>Mileage</th></tr>
+{% for d in docs %}<tr><td><a href="{{ url_for('log_detail', doc_id=d._id) }}">{{ d._id }}</a></td><td>{{ d.date }}</td><td>{{ d.day_type }}</td><td class="n">&mdash;</td><td class="n">{{ d.computed_summary.gross_collection_inr|inr }}</td><td class="n">{{ d.computed_summary.net_margin_inr|inr }}</td><td class="n">{{ d.computed_summary.mileage_kmpl }}</td><td>{{ status(d.performance_evaluation.collection_status) }}</td><td>{{ status(d.performance_evaluation.mileage_status) }}</td></tr>{% endfor %}</table></div>{% endblock %}

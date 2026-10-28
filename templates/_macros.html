@@ -1,0 +1,6 @@
+{% macro trace_panel(trace) %}
+{% if trace %}<div class="trace"><h2>Application &rarr; Database &rarr; Query &rarr; Result &nbsp;(what just happened)</h2>
+{% for t in trace %}<div class="{{ 'mongo' if t.startswith('MongoDB') else 'redis' }}">{{ loop.index }}. {{ t }}</div>{% endfor %}</div>{% endif %}
+{% endmacro %}
+{% macro status(s) %}<span class="badge {{ s }}">{{ s }}</span>{% endmacro %}
+{% macro src(label, ms) %}<span class="badge src">{{ label }} &middot; {{ ms }} ms</span>{% endmacro %}

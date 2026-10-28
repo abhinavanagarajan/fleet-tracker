@@ -1,0 +1,12 @@
+{% extends "base.html" %}{% block title %}Health{% endblock %}{% block body %}
+<h1>Database Health <span class="muted">proof that real MongoDB and Redis servers are running</span></h1>
+<div class="grid g2"><div class="card"><h2>MongoDB {% if h.mongo.ok %}<span class="badge ok">connected</span>{% else %}<span class="badge err">DOWN</span>{% endif %}</h2>
+{% if h.mongo.ok %}<table><tr><td>Server version</td><td><b>{{ h.mongo.version }}</b></td></tr><tr><td>URI</td><td>{{ h.mongo.uri }}</td></tr><tr><td>Database</td><td>{{ h.mongo.db }}</td></tr>
+{% for n,c in h.mongo.collections.items() %}<tr><td>collection <code>{{ n }}</code></td><td>{{ c }} documents &middot; indexes: {{ h.mongo.indexes[n]|join(', ') }}</td></tr>{% endfor %}</table>{% else %}<pre>{{ h.mongo.error }}</pre>{% endif %}</div>
+<div class="card"><h2>Redis {% if h.redis.ok %}<span class="badge ok">connected</span>{% else %}<span class="badge err">DOWN</span>{% endif %}</h2>
+{% if h.redis.ok %}<table><tr><td>Server version</td><td><b>{{ h.redis.version }}</b> ({{ h.redis.mode }})</td></tr><tr><td>URL</td><td>{{ h.redis.url }}</td></tr><tr><td>Keys in db 0</td><td>{{ h.redis.dbsize }}</td></tr><tr><td>Memory</td><td>{{ h.redis.used_memory }}</td></tr><tr><td>Uptime</td><td>{{ h.redis.uptime_s }} s</td></tr></table>{% else %}<pre>{{ h.redis.error }}</pre>{% endif %}</div></div>
+<div class="card"><h2>Consistency &amp; maintenance</h2><div class="row">
+<form method="post" action="{{ url_for('health_audit') }}"><button>Run Mongo &harr; Redis consistency check</button></form>
+<form method="post" action="{{ url_for('admin_rebuild') }}"><button class="ghost">Rebuild Redis from MongoDB</button></form>
+<form method="post" action="{{ url_for('admin_reseed') }}" onsubmit="return confirm('This DELETES all logs and re-seeds the 150 demo documents. Continue?')"><button class="danger">Reset demo data</button></form></div>
+{% if audit %}<p>{% if audit.ok %}<span class="badge ok">CONSISTENT</span> {{ audit.checked }} keys checked against MongoDB.{% else %}<span class="badge err">MISMATCH</span>{% endif %}</p>{% for p in audit.problems %}<div class="muted">{{ p }}</div>{% endfor %}{% endif %}</div>{% endblock %}

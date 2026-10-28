@@ -1,0 +1,17 @@
+{% extends "base.html" %}{% block title %}Demo Guide{% endblock %}{% block body %}
+<h1>Demo Guide - DA-3 rubric &rarr; where to show it</h1>
+<div class="card"><table><tr><th>DA-3 requirement</th><th>Show this</th><th>Where</th></tr>
+<tr><td>Working application</td><td>Dashboard, submit a shift, edit and delete a log</td><td><a href="{{ url_for('dashboard') }}">Dashboard</a> / <a href="{{ url_for('submit') }}">Submit</a> / <a href="{{ url_for('logs') }}">Logs</a></td></tr>
+<tr><td>Actual NoSQL database</td><td>Real mongod + redis-server versions, document counts, indexes; Compass / mongosh / redis-cli on the side</td><td><a href="{{ url_for('health_page') }}">Health</a></td></tr>
+<tr><td>At least 5 important queries</td><td>12 queries, each with the exact code, the DB, the timing and the result</td><td><a href="{{ url_for('queries') }}">Query Console</a></td></tr>
+<tr><td>At least 2 significant NoSQL features</td><td>Embedding &amp; flexible schema (variable singles), 5 indexes + explain(), aggregation ($group/$unwind/$lookup), Redis hash / sorted set / atomic counters, referencing</td><td><a href="{{ url_for('indexes') }}">Index Lab</a>, <a href="{{ url_for('queries') }}">Q4 Q5 Q7 Q11</a>, <a href="{{ url_for('redis_explorer') }}">Redis</a></td></tr>
+<tr><td>Application &rarr; Database &rarr; Query &rarr; Result</td><td>The green/red trace panel after every submit/update/delete; the flow strip on each query</td><td>Submit Shift, Log detail</td></tr></table></div>
+<div class="card"><h2>Suggested 8-minute flow</h2><ol>
+<li><b>Health</b> - show real MongoDB + Redis versions, 150 logs, 5 indexes. Click <i>consistency check</i> &rarr; CONSISTENT.</li>
+<li><b>Dashboard</b> - leaderboard comes from <i>Redis</i> (note ms), recent logs from <i>MongoDB</i>. Explain the hybrid design.</li>
+<li><b>Submit Shift</b> - pick a bus, click <i>Auto-fill demo values</i>, save. Point at the trace panel (Mongo upsert, then HINCRBYFLOAT / ZADD). Watch the leaderboard update.</li>
+<li><b>Logs &rarr; open the new log</b> - push a late single (embedded array, $push), show recalculated totals; then delete it and show Redis reverse.</li>
+<li><b>Query Console</b> - <i>Run all</i>. Dwell on Q2 (anomaly), Q4 (Sunday vs weekday), Q5 ($unwind), Q9/Q10 (Redis).</li>
+<li><b>Index Lab</b> - explain plans (IXSCAN vs COLLSCAN), then the 100k-document benchmark.</li>
+<li><b>Redis Explorer</b> - show the three structures. <b>Failure demo:</b> stop Redis, reload Dashboard &rarr; it falls back to MongoDB; start Redis, <i>Rebuild Redis</i>.</li></ol></div>
+{% endblock %}

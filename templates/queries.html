@@ -1,0 +1,19 @@
+{% extends "base.html" %}{% block title %}Query Console{% endblock %}{% block body %}
+<h1>Query Console <span class="muted">Application &rarr; Database &rarr; Query &rarr; Result</span></h1>
+<div class="card row"><div><label>Bus (Q1, Q10)</label><select id="p_bus_id">{% for b in buses %}<option>{{ b.bus_id }}</option>{% endfor %}</select></div>
+<div><label>Date (Q1, Q9, Q10, Q11)</label><input type="date" id="p_date" value="{{ d.date }}"></div>
+<button id="all">Run all {{ qs|length }} queries</button><span class="muted">The query text shown is generated from the exact spec that is executed.</span></div>
+{% for q in qs %}<div class="card" id="{{ q.id }}"><div class="row" style="justify-content:space-between"><div><h2>{{ q.id }} &middot; {{ q.title }} <span class="badge src">{{ q.db }}</span></h2>
+<div class="muted">{{ q.question }}</div><div style="margin-top:4px">{% for t in q.tags %}<span class="tag">{{ t }}</span>{% endfor %}</div></div><button class="run" data-q="{{ q.id }}">Run</button></div>
+<div class="out"></div></div>{% endfor %}{% endblock %}
+{% block script %}<script>
+const esc=s=>String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+async function run(id){const box=document.querySelector('#'+id+' .out');box.innerHTML='<div class="muted">running...</div>';
+ const qs=new URLSearchParams({bus_id:p_bus_id.value,date:p_date.value});const r=await (await fetch('/api/queries/'+id+'?'+qs)).json();
+ let h='<div class="flow"><span>App (Flask)</span>&rarr;<span>'+r.db+'</span>&rarr;<span>Query</span>&rarr;<span>Result</span></div><pre>'+esc(r.code)+'</pre>';
+ if(r.error){h+='<div class="flash err">'+esc(r.error)+'</div>'}else{
+  h+='<div class="muted">'+r.count+' row(s) in <b>'+r.ms+' ms</b></div><div style="overflow:auto;max-height:300px"><table><tr>'+r.columns.map(c=>'<th>'+esc(c)+'</th>').join('')+'</tr>'+r.rows.map(x=>'<tr>'+r.columns.map(c=>'<td>'+esc(x[c]??'')+'</td>').join('')+'</tr>').join('')+'</table></div>';}
+ box.innerHTML=h;}
+document.querySelectorAll('.run').forEach(b=>b.onclick=()=>run(b.dataset.q));
+document.getElementById('all').onclick=async()=>{for(const b of document.querySelectorAll('.run'))await run(b.dataset.q)};
+</script>{% endblock %}

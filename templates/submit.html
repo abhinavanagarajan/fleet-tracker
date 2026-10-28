@@ -1,0 +1,37 @@
+{% extends "base.html" %}{% block title %}Submit shift{% endblock %}{% block body %}
+<h1>Submit Daily Shift</h1>
+<div class="flow"><span>Form</span>&rarr;<span>Flask</span>&rarr;<span>compute mileage / margin / day-type / status</span>&rarr;<span>MongoDB upsert</span>&rarr;<span>Redis HINCRBYFLOAT + ZADD + rolling refresh</span></div>
+<form method="post" class="card" id="f">
+<div class="row">
+ <div><label>Bus</label><select name="bus_id" id="bus">{% for b in buses %}<option value="{{ b.bus_id }}" {{ 'selected' if init.form.get('bus_id')==b.bus_id }}>{{ b.bus_id }} - {{ b.route_name }}</option>{% endfor %}</select></div>
+ <div><label>Date</label><input type="date" name="date" value="{{ init.form.get('date') or '' }}" id="date" required></div>
+ <div><label>Odometer start (km)</label><input name="start_km" id="start_km" value="{{ init.form.get('start_km','') }}" required></div>
+ <div><label>Odometer end (km)</label><input name="end_km" id="end_km" value="{{ init.form.get('end_km','') }}" required></div>
+ <div><label>&nbsp;</label><label><input type="checkbox" name="holiday" {{ 'checked' if init.form.get('holiday') }}> Holiday</label></div></div>
+<h2 style="margin-top:14px">Singles (trips) <span class="muted">- any number; each is embedded in the day's document</span></h2>
+<table id="st"><thead><tr><th>Trip code</th><th>Departure</th><th>Collection &#8377;</th><th>Passengers</th><th></th></tr></thead><tbody></tbody></table>
+<div class="row" style="margin-top:6px"><button type="button" class="ghost" id="add">+ Add single</button><button type="button" class="ghost" id="demo">Auto-fill demo values</button><span class="muted">Gross: <b id="gross">0</b></span></div>
+<h2 style="margin-top:14px">Fuel fill</h2>
+<div class="row"><div><label>Litres (HSD)</label><input name="litres" id="litres" value="{{ init.form.get('litres','') }}" required></div>
+ <div><label>Rate per litre</label><input name="rate" id="rate" value="{{ init.form.get('rate','94.5') }}" required></div>
+ <div><label>Bunk</label><input name="bunk" id="bunk" value="{{ init.form.get('bunk','') }}"></div>
+ <div><label>Other expense &#8377;</label><input name="other_expense" value="{{ init.form.get('other_expense','0') }}"></div></div>
+<p><button>Save to MongoDB + Redis</button> <span class="muted">Submitting the same bus &amp; date again replaces that day (upsert) without double-counting Redis.</span></p></form>
+{% endblock %}
+{% block script %}<script>
+const init={{ init|tojson }};const tb=document.querySelector('#st tbody');
+function row(v={}){const tr=document.createElement('tr');tr.innerHTML=`<td><input name="trip_code" size="8" value="${v.trip_code||''}" placeholder="auto"></td><td><input type="time" name="departure_time" value="${v.departure_time||''}"></td><td><input name="collection" class="c" value="${v.collection||''}"></td><td><input name="passengers" size="5" value="${v.passengers||''}"></td><td><button type="button" class="ghost x">&times;</button></td>`;tb.appendChild(tr);}
+function gross(){document.getElementById('gross').textContent=[...document.querySelectorAll('.c')].reduce((s,e)=>s+(parseFloat(e.value)||0),0).toLocaleString('en-IN')}
+tb.addEventListener('input',gross);tb.addEventListener('click',e=>{if(e.target.classList.contains('x')){e.target.closest('tr').remove();gross()}});
+document.getElementById('add').onclick=()=>row();
+(init.singles.length?init.singles:[{},{},{}]).forEach(row);gross();
+async function loadBus(fill){const b=await (await fetch('/api/bus/'+document.getElementById('bus').value)).json();
+ document.getElementById('bunk').value=document.getElementById('bunk').value||b.default_bunk;
+ if(fill||!document.getElementById('start_km').value) document.getElementById('start_km').value=b.last_odometer;window._bus=b;}
+document.getElementById('bus').onchange=()=>{document.getElementById('start_km').value='';loadBus(true)};
+if(!document.getElementById('date').value){const d=new Date('{{ today }}T00:00:00');d.setDate(d.getDate()+1);document.getElementById('date').value=d.toISOString().slice(0,10)}
+loadBus(false);
+document.getElementById('demo').onclick=async()=>{await loadBus(true);const b=window._bus,n=4,tc=['S1_UP','S2_DN','S3_UP','S4_DN'],tm=['06:00','10:30','15:00','19:30'];tb.innerHTML='';
+ for(let i=0;i<n;i++){const pax=Math.round(b.seating_capacity*(0.7+Math.random()*0.3));row({trip_code:tc[i],departure_time:tm[i],collection:Math.round(pax*105/10)*10,passengers:pax})}
+ const km=360+Math.round(Math.random()*20);document.getElementById('end_km').value=b.last_odometer+km;document.getElementById('litres').value=(Math.round(km/b.baseline_target_kmpl*2)/2);gross()};
+</script>{% endblock %}

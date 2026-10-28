@@ -1,0 +1,13 @@
+{% extends "base.html" %}{% from "_macros.html" import trace_panel, status %}{% block title %}{{ d._id }}{% endblock %}{% block body %}
+<h1>{{ d._id }}</h1>{{ trace_panel(trace) }}
+<div class="grid g2"><div>
+<div class="card"><h2>Embedded singles ({{ d.singles|length }})</h2><table><tr><th>#</th><th>Trip</th><th>Dep.</th><th class="n">Collection</th><th class="n">Pax</th></tr>
+{% for s in d.singles %}<tr><td>{{ s.single_no }}</td><td>{{ s.trip_code }}</td><td>{{ s.departure_time }}</td><td class="n">{{ s.collection_inr|inr }}</td><td class="n">{{ s.passenger_count }}</td></tr>{% endfor %}</table>
+<p>Gross <b>&#8377;{{ d.computed_summary.gross_collection_inr|inr }}</b> &middot; Net <b>&#8377;{{ d.computed_summary.net_margin_inr|inr }}</b> &middot; {{ d.computed_summary.mileage_kmpl }} km/L &middot; {{ status(d.performance_evaluation.collection_status) }} {{ status(d.performance_evaluation.mileage_status) }}<br><span class="muted">{{ d.day_type }} baseline &#8377;{{ d.performance_evaluation.baseline_avg_collection|inr }}</span></p></div>
+<div class="card"><h2>UPDATE: push a late single <span class="muted">($push + $set)</span></h2><form method="post" action="{{ url_for('log_add_single', doc_id=d._id) }}" class="row">
+<div><label>Trip code</label><input name="trip_code" size="8" placeholder="S{{ d.singles|length+1 }}_UP"></div><div><label>Departure</label><input type="time" name="departure_time"></div>
+<div><label>Collection &#8377;</label><input name="collection" size="8" required></div><div><label>Passengers</label><input name="passengers" size="5"></div><button>Push single</button></form></div>
+<div class="card"><h2>UPDATE: correct the fuel fill <span class="muted">($set)</span></h2><form method="post" action="{{ url_for('log_set_fuel', doc_id=d._id) }}" class="row">
+<div><label>Litres</label><input name="litres" size="7" value="{{ d.fuel_fill.litres }}"></div><div><label>Rate</label><input name="rate" size="7" value="{{ d.fuel_fill.fuel_rate_per_litre }}"></div><div><label>Bunk</label><input name="bunk" value="{{ d.fuel_fill.bunk_name }}"></div><button>Update fuel</button></form></div>
+<div class="card"><h2>DELETE</h2><form method="post" action="{{ url_for('log_delete', doc_id=d._id) }}" onsubmit="return confirm('Delete this day from MongoDB and Redis?')"><button class="danger">Delete this log</button> <span class="muted">delete_one + Redis HINCRBYFLOAT(-gross), ZREM</span></form></div></div>
+<div class="card"><h2>Raw MongoDB document</h2><pre>{{ raw }}</pre></div></div>{% endblock %}

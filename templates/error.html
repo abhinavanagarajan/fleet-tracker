@@ -1,0 +1,3 @@
+{% extends "base.html" %}{% block body %}<h1>Something went wrong</h1>
+<div class="card">{% if db_down %}<div class="warnbox"><b>A database is not reachable.</b><br>Start them with <code>docker compose up -d</code> (or your local <code>mongod</code> / <code>redis-server</code>), run <code>python check_env.py</code>, then refresh.</div>{% endif %}
+<p><b>{{ name }}</b></p><pre>{{ msg }}</pre><a class="btn ghost" href="{{ url_for('health_page') }}">Open Health page</a></div>{% endblock %}

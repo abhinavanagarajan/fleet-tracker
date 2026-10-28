@@ -1,0 +1,8 @@
+{% extends "base.html" %}{% block title %}Redis Explorer{% endblock %}{% block body %}
+<h1>Redis Explorer <span class="muted">the 3 key structures from the data model</span></h1>
+<div class="grid g3">{% for o in ov %}<div class="card"><h2><code>{{ o.pattern }}</code></h2><div class="muted">type: <b>{{ {'hash':'HASH','zset':'SORTED SET'}.get(o.type,o.type) }}</b> &middot; {{ o.count }} key(s)</div>
+{% for s in o.samples %}<div><a href="{{ url_for('redis_explorer', key=s.key) }}"><code>{{ s.key }}</code></a> <span class="muted">ttl {{ s.ttl }}</span></div>{% endfor %}</div>{% endfor %}</div>
+{% if key %}<div class="card"><h2><code>{{ key }}</code> <span class="badge src">{{ ktype }}</span></h2>
+{% if ktype=='hash' %}<table><tr><th>Field</th><th>Value</th></tr>{% for k,v in val.items() %}<tr><td>{{ k }}</td><td>{{ v }}</td></tr>{% endfor %}</table>
+{% elif ktype=='zset' %}<table><tr><th>#</th><th>Member</th><th class="n">Score</th></tr>{% for r in val %}<tr><td>{{ loop.index }}</td><td>{{ r.member }}</td><td class="n">{{ r.score|inr }}</td></tr>{% endfor %}</table>
+{% else %}<pre>{{ val }}</pre>{% endif %}</div>{% endif %}{% endblock %}

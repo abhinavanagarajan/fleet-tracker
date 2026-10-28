@@ -1,0 +1,24 @@
+{% extends "base.html" %}{% from "_macros.html" import trace_panel, status, src %}
+{% block title %}Dashboard{% endblock %}{% block body %}
+<div class="row" style="justify-content:space-between"><h1>Live Dashboard</h1>
+<form class="row" method="get"><div><label>Date</label><input type="date" name="date" value="{{ date }}"></div><button>Show</button><a class="btn" href="{{ url_for('submit') }}">+ Submit shift</a></form></div>
+{{ trace_panel(trace) }}
+<div class="grid g3">
+ <div class="card"><div class="muted">Fleet gross &middot; {{ date }}</div><div class="kpi">&#8377; {{ summ.data.get('gross_collection_inr','0')|inr }}</div>{{ src(summ.source, summ.ms) }}</div>
+ <div class="card"><div class="muted">Fleet net margin</div><div class="kpi">&#8377; {{ summ.data.get('net_margin_inr','0')|inr }}</div><div class="muted">Redis hash <code>fleet:summary:{{ date }}</code></div></div>
+ <div class="card"><div class="muted">Buses reported</div><div class="kpi">{{ summ.data.get('buses_reported','0') }}</div><div class="muted">{{ alerts|length }} alert(s) today</div></div>
+</div>
+{% if lb.degraded %}<div class="flash err">Redis unavailable - answering from MongoDB fallback (graceful degradation).</div>{% endif %}
+<div class="grid g2"><div class="card"><h2>Leaderboard {{ src(lb.source, lb.ms) }}</h2>
+<table><tr><th>#</th><th>Bus</th><th class="n">Gross &#8377;</th><th class="n">vs baseline</th><th>Collection</th><th>Mileage</th></tr>
+{% for r in rows %}<tr><td>{{ r.rank }}</td><td><b>{{ r.bus }}</b></td><td class="n">{{ r.gross|inr }}</td><td class="n">{% if r.delta is not none %}{{ '%+.1f'|format(r.delta) }}%{% endif %}</td><td>{{ status(r.status) }}</td><td>{{ status(r.mileage) }}</td></tr>
+{% else %}<tr><td colspan="6" class="muted">No data for {{ date }}.</td></tr>{% endfor %}</table></div>
+<div class="card"><h2>Alerts for {{ date }} (MongoDB flags)</h2>
+{% for d in alerts %}<div style="margin:5px 0"><b>{{ d.bus_id }}</b> &mdash; {% if d.performance_evaluation.collection_status=='BELOW_AVERAGE' %}collection {{ d.computed_summary.gross_collection_inr|inr }} below {{ d.day_type }} baseline {{ d.performance_evaluation.baseline_avg_collection|inr }}; {% endif %}{% if d.performance_evaluation.mileage_status=='LOW' %}mileage {{ d.computed_summary.mileage_kmpl }} km/L below {{ d.performance_evaluation.mileage_baseline_kmpl }}{% endif %}</div>
+{% else %}<span class="muted">No anomalies.</span>{% endfor %}</div></div>
+<div class="card"><h2>Rolling averages per bus {{ src(roll.source, roll.ms) }}</h2>
+<table><tr><th>Bus</th><th class="n">7-day</th><th class="n">30-day</th><th class="n">Sunday</th><th class="n">Weekday</th><th class="n">Mileage 30d</th><th>Updated</th></tr>
+{% for b,h in roll.data.items() %}<tr><td><b>{{ b }}</b></td><td class="n">{{ h.get('avg_collection_7d','-')|inr }}</td><td class="n">{{ h.get('avg_collection_30d','-')|inr }}</td><td class="n">{{ h.get('avg_collection_sunday','-')|inr }}</td><td class="n">{{ h.get('avg_collection_weekday','-')|inr }}</td><td class="n">{{ h.get('avg_mileage_30d','-') }}</td><td class="muted">{{ h.get('updated_at','') }}</td></tr>{% endfor %}</table></div>
+<div class="card"><h2>Recent logs (MongoDB)</h2><table><tr><th>Bus</th><th>Date</th><th>Type</th><th class="n">Gross</th><th>Status</th></tr>
+{% for d in recent %}<tr><td>{{ d.bus_id }}</td><td><a href="{{ url_for('log_detail', doc_id=d._id) }}">{{ d.date }}</a></td><td>{{ d.day_type }}</td><td class="n">{{ d.computed_summary.gross_collection_inr|inr }}</td><td>{{ status(d.performance_evaluation.collection_status) }}</td></tr>{% endfor %}</table></div>
+{% endblock %}

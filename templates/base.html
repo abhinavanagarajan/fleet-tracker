@@ -1,0 +1,9 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{% block title %}Fleet Finance{% endblock %} - Fleet Finance Management System</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}"></head><body>
+{% set ep = request.endpoint %}
+<nav><b>&#128652; Fleet Finance (MongoDB + Redis)</b>
+{% for e,l in [('dashboard','Dashboard'),('submit','Submit Shift'),('logs','Logs (CRUD)'),('queries','Query Console'),('indexes','Index Lab'),('redis_explorer','Redis Explorer'),('health_page','Health'),('guide','Demo Guide')] %}
+<a href="{{ url_for(e) }}" class="{{ 'on' if ep==e or (e=='logs' and ep=='log_detail') }}">{{ l }}</a>{% endfor %}</nav>
+<main>{% with m = get_flashed_messages(with_categories=true) %}{% for c,t in m %}<div class="flash {{ c }}">{{ t }}</div>{% endfor %}{% endwith %}
+{% block body %}{% endblock %}</main>{% block script %}{% endblock %}</body></html>

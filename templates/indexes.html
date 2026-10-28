@@ -1,0 +1,18 @@
+{% extends "base.html" %}{% block title %}Index Lab{% endblock %}{% block body %}
+<h1>Index Lab</h1>
+<div class="card"><h2>1. Indexes on this database (<code>index_information()</code>)</h2><table><tr><th>Name</th><th>Collection</th><th>Key</th><th>Unique</th><th>Exists</th></tr>
+{% for i in idx %}<tr><td><b>{{ i.name }}</b></td><td>{{ i.collection }}</td><td><code>{{ i.key }}</code></td><td>{{ 'yes' if i.unique }}</td><td>{% if i.exists %}<span class="badge ok">yes</span>{% else %}<span class="badge err">missing</span>{% endif %}</td></tr>{% endfor %}</table></div>
+<div class="card"><h2>2. <code>explain("executionStats")</code> - planner's choice vs. forced collection scan</h2>
+<table><tr><th>Query</th><th>Filter</th><th>Planner uses</th><th class="n">Docs examined</th><th>Forced <code>$natural</code></th><th class="n">Docs examined</th></tr>
+{% for p in plans %}<tr><td>{{ p.label }}</td><td><code>{{ p.filter }}</code></td><td><span class="badge {{ 'ok' if p.planner.stage=='IXSCAN' else 'AVERAGE' }}">{{ p.planner.stage }}</span> {{ p.planner.index }}</td><td class="n">{{ p.planner.examined if p.planner.examined is not none else '-' }}</td><td><span class="badge AVERAGE">{{ p.forced_scan.stage }}</span></td><td class="n">{{ p.forced_scan.examined if p.forced_scan.examined is not none else '-' }}</td></tr>{% endfor %}</table>
+<p class="muted">IXSCAN = index used, COLLSCAN = every document read. With only 150 documents the time difference is tiny - run the scale benchmark below.</p></div>
+<div class="card"><h2>3. Latency by field (median of 100 runs)</h2><button id="tm">Run timing</button><div id="tmo"></div></div>
+<div class="card"><h2>4. Scale benchmark - same query without vs. with index</h2><div class="row"><div><label>Documents</label><select id="n"><option>20000</option><option selected>100000</option><option>300000</option></select></div><button id="bn">Run benchmark</button><span class="muted">Creates a throw-away collection, then deletes it.</span></div><div id="bno"></div></div>
+{% endblock %}
+{% block script %}<script>
+tm.onclick=async()=>{tmo.innerHTML='running...';const r=await (await fetch('/api/timing')).json();
+tmo.innerHTML='<table><tr><th>Query</th><th>Indexed</th><th class="n">Matched</th><th class="n">Median ms</th></tr>'+r.map(x=>`<tr><td>${x.label}</td><td>${x.indexed?'yes':'<b>no</b>'}</td><td class="n">${x.matched}</td><td class="n">${x.median_ms}</td></tr>`).join('')+'</table>'};
+bn.onclick=async()=>{bno.innerHTML='building data, please wait...';bn.disabled=true;
+ try{const r=await (await fetch('/api/bench',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({n:+n.value})})).json();
+ bno.innerHTML=`<table><tr><th></th><th>Plan</th><th class="n">Docs examined</th><th class="n">Median ms</th></tr><tr><td>No index</td><td>${r.before.stage}</td><td class="n">${r.before.examined??'-'}</td><td class="n">${r.before.ms}</td></tr><tr><td>With ix_bus_date</td><td>${r.after.stage}</td><td class="n">${r.after.examined??'-'}</td><td class="n">${r.after.ms}</td></tr></table><p><b>${r.docs.toLocaleString()}</b> docs, query matched ${r.matched}. Speed-up: <b>${r.speedup}x</b> (index build ${r.index_build_s}s)</p>`}catch(e){bno.innerHTML='<div class="flash err">'+e+'</div>'}bn.disabled=false};
+</script>{% endblock %}
